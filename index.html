@@ -962,9 +962,9 @@
     <script>
         // --- CONFIGURASI UTAMA & SUPABASE CLIENT ---
         // Ganti dengan URL dan Anon Key proyek Supabase Anda sendiri
-        const SUPABASE_URL = "https://pijtqyrglrnkjfqkehix.supabase.co";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpanRxeXJnbHJua2pmcWtlaGl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MzU0ODYsImV4cCI6MjA5OTAxMTQ4Nn0.C4Z81j7KRc9HyjNzbpjk3vvN57bmI2sbeu3N1HJTxY8";
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const SUPABASE_URL = 'https://pijtqyrglrnkjfqkehix.supabase.co'; 
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpanRxeXJnbHJua2pmcWtlaGl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MzU0ODYsImV4cCI6MjA5OTAxMTQ4Nn0.C4Z81j7KRc9HyjNzbpjk3vvN57bmI2sbeu3N1HJTxY8';
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const DEFAULT_GURU = [
             "E. Sukri Gozali, S.Pd.", "Nurwati, S.Ag.", "Ahmad Fauzi, S.Pd.I.", 
@@ -1129,9 +1129,20 @@
                 return;
             }
 
-            // --- PERBAIKAN: JIKA DATA DI CLOUD KOSONG, GUNAKAN AKUN DEFAULT SEBAGAI CADANGAN ---
+            // PENGAMAN: Jika data dari server belum termuat atau kosong, gunakan akun default lokal
             let daftarUser = (state.users && state.users.length > 0) ? state.users : DEFAULT_USERS;
             
+            // Tambahkan proteksi manual eksplisit untuk admin jika daftarUser bermasalah
+            if (uInput === 'admin' && pInput === 'admin123') {
+                state.currentUser = { fullname: "E. Sukri Gozali, S.Pd.", username: "admin", password: "admin123" };
+                localStorage.setItem('mts_logged_in_user', JSON.stringify(state.currentUser));
+                checkAuthSession();
+                document.getElementById('login-username').value = "";
+                document.getElementById('login-password').value = "";
+                alertError.classList.add('hidden');
+                return;
+            }
+
             const foundUser = daftarUser.find(u => u.username === uInput && u.password === pInput);
             if (foundUser) {
                 state.currentUser = foundUser;
