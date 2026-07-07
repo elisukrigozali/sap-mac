@@ -1,10 +1,15 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Agenda & Absensi MTs Al-Hidayah Cibentang</title>
     <!-- Tailwind CSS -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+const SUPABASE_URL = 'https://pijtqyrglrnkjfqkehix.supabase.co/rest/v1/'; // Ganti dengan URL Anda
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpanRxeXJnbHJua2pmcWtlaGl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MzU0ODYsImV4cCI6MjA5OTAxMTQ4Nn0.C4Z81j7KRc9HyjNzbpjk3vvN57bmI2sbeu3N1HJTxY8';      // Ganti dengan Key Anda
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -968,6 +973,14 @@
     <!--            APPLICATION JAVASCRIPT          -->
     <!-- ========================================== -->
     <script>
+supabase
+  .channel('schema-db-changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'agenda' }, payload => {
+    // Jika ada perubahan data di database, langsung ambil data terbaru
+    muatDataAgendaDariCloud();
+  })
+  .subscribe();
+
         // --- DATA & KONFIGURASI UTAMA ---
         const DEFAULT_GURU = [
             "E. Sukri Gozali, S.Pd.",
@@ -1122,14 +1135,17 @@
         ];
 
         let state = {
-            rosters: JSON.parse(localStorage.getItem('mts_rosters')) || DEFAULT_ROSTERS,
-            agendas: JSON.parse(localStorage.getItem('mts_agendas')) || [],
-            attendance: JSON.parse(localStorage.getItem('mts_attendance')) || {}, // Key: "YYYY-MM-DD_kelas" -> { nama: "H"/"S"/"I"/"A" }
-            attendanceNotes: JSON.parse(localStorage.getItem('mts_attendance_notes')) || {}, // Key: "YYYY-MM-DD_kelas_nama" -> "Keterangan"
-            users: JSON.parse(localStorage.getItem('mts_users')) || DEFAULT_USERS,
-            teachers: JSON.parse(localStorage.getItem('mts_teachers')) || DEFAULT_GURU,
-            subjects: JSON.parse(localStorage.getItem('mts_subjects')) || DEFAULT_MAPEL, // Menyimpan master daftar mapel
-            currentUser: JSON.parse(localStorage.getItem('mts_logged_in_user')) || null
+            async function muatDataAgendaDariCloud() {
+    const { data: agenda, error } = await supabase
+        .from('agenda')
+        .select('*')
+        .order('tanggal', { ascending: false });
+
+    if (agenda) {
+        // Jalankan kode bawaan aplikasi Anda untuk menampilkan data ke tabel/layar
+        tampilkanDataKeTabel(agenda); 
+    }
+}
         };
 
         // Migrasi data dari roster lama
@@ -1143,14 +1159,18 @@
         });
 
         function saveState() {
-            localStorage.setItem('mts_rosters', JSON.stringify(state.rosters));
-            localStorage.setItem('mts_agendas', JSON.stringify(state.agendas));
-            localStorage.setItem('mts_attendance', JSON.stringify(state.attendance));
-            localStorage.setItem('mts_attendance_notes', JSON.stringify(state.attendanceNotes));
-            localStorage.setItem('mts_users', JSON.stringify(state.users));
-            localStorage.setItem('mts_teachers', JSON.stringify(state.teachers));
-            localStorage.setItem('mts_subjects', JSON.stringify(state.subjects));
-            localStorage.setItem('mts_logged_in_user', JSON.stringify(state.currentUser));
+            async function simpanAgendaKeCloud(dataAgenda) {
+    const { data, error } = await supabase
+        .from('agenda')
+        .insert([ dataAgenda ]);
+
+    if (error) {
+        alert('Gagal menyimpan ke cloud: ' + error.message);
+    } else {
+        alert('Agenda berhasil disimpan dan disinkronkan!');
+        muatDataAgendaDariCloud(); // Panggil fungsi untuk refresh tampilan
+    }
+}
         }
 
         // --- UTILITAS MODAL KONFIRMASI & TOAST KUSTOM (Aman untuk Iframe) ---
