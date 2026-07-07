@@ -159,16 +159,6 @@
     </div>
 
     <script>
-        // Mengamankan inisialisasi agar tombol login tidak macet walau internet lambat
-        let supabase;
-        try {
-            const SUPABASE_URL = 'https://pijtqyrglrnkjfqkehix.supabase.co'; 
-            const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpanRxeXJnbHJua2pmcWtlaGl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MzU0ODYsImV4cCI6MjA5OTAxMTQ4Nn0.C4Z81j7KRc9HyjNzbpjk3vvN57bmI2sbeu3N1HJTxY8';      
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        } catch (e) {
-            console.error("Supabase gagal memuat di awal, aman untuk login lokal:", e);
-        }
-
         const DEFAULT_MAPEL = [
             "Al-Qur'an Hadits", "Akidah Akhlak", "Fikih", "Sejarah Kebudayaan Islam (SKI)",
             "Pendidikan Pancasila (PPKn)", "Bahasa Indonesia", "Bahasa Arab", "Matematika",
@@ -176,9 +166,11 @@
         ];
 
         let state = { agendas: [], namaLengkapGuru: "" };
+        let supabase = null;
 
-        // Aksi Login Fleksibel & Anti-Macet
-        document.getElementById('btn-submit-login').addEventListener('click', () => {
+        // FUNGSI UTAMA KONTROL LOGIN (DIJAMIN TIDAK AKAN MACET KARENA BERJALAN LOKAL AWALNYA)
+        document.getElementById('btn-submit-login').addEventListener('click', function(e) {
+            e.preventDefault();
             const userSelect = document.getElementById('login-username');
             const passInput = document.getElementById('login-password').value.trim();
             const selectedText = userSelect.options[userSelect.selectedIndex].text;
@@ -189,20 +181,21 @@
                 return;
             }
 
-            // PIN Default disetel ke '1234' untuk semua guru demi kenyamanan
+            // Validasi PIN lokal (PIN Guru: 1234, Admin: admin123)
             if (passInput === '1234' || (selectedValue === 'admin' && passInput === 'admin123')) {
                 state.namaLengkapGuru = selectedText;
                 
-                // Pindah Layar
-                document.getElementById('auth-screen').classList.add('hidden');
+                // Transisi perpindahan layar
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('main-dashboard-app').style.display = 'flex';
                 document.getElementById('main-dashboard-app').classList.remove('hidden');
                 
-                // Pasang Nama di Form Input
+                // Sinkronisasi komponen profil
                 document.getElementById('current-user-fullname').textContent = state.namaLengkapGuru;
                 document.getElementById('agenda-guru').value = state.namaLengkapGuru;
                 
-                // Hubungkan ke Cloud Data
-                aktifkanFiturCloud();
+                // Baru panggil koneksi database Supabase setelah login sukses terbuka
+                hubungkanKeSupabaseCloud();
             } else {
                 tampilkanError("Password PIN yang Anda masukkan salah!");
             }
@@ -210,20 +203,36 @@
 
         function tampilkanError(pesan) {
             const errBox = document.getElementById('login-alert-error');
-            document.getElementById('error-msg').textContent = pesan;
+            errBox.querySelector('span').textContent = pesan;
             errBox.classList.remove('hidden');
             setTimeout(() => errBox.classList.add('hidden'), 3500);
         }
 
-        function aktifkanFiturCloud() {
-            muatDataAgendaDariCloud();
-            if (supabase) {
-                supabase
-                  .channel('schema-db-changes')
-                  .on('postgres_changes', { event: '*', schema: 'public', table: 'agenda' }, () => {
-                      muatDataAgendaDariCloud();
-                  })
-                  .subscribe();
+        // KONEKSI SUPABASE AMAN (LOAD DI BELAKANG LAYAR)
+        function hubungkanKeSupabaseCloud() {
+            try {
+                if (window.supabase) {
+                    const SUPABASE_URL = 'https://pijtqyrglrnkjfqkehix.supabase.co'; 
+                    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpanRxeXJnbHJua2pmcWtlaGl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MzU0ODYsImV4cCI6MjA5OTAxMTQ4Nn0.C4Z81j7KRc9HyjNzbpjk3vvN57bmI2sbeu3N1HJTxY8';      
+                    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                    
+                    // Tarik data awal
+                    muatDataAgendaDariCloud();
+
+                    // Daftarkan listener sinkronisasi otomatis harian
+                    supabase
+                      .channel('schema-db-changes')
+                      .on('postgres_changes', { event: '*', schema: 'public', table: 'agenda' }, () => {
+                          muatDataAgendaDariCloud();
+                      })
+                      .subscribe();
+                } else {
+                    console.log("Menjalankan mode penyimpanan lokal...");
+                    renderAgendaTable();
+                }
+            } catch (err) {
+                console.error("Gagal terhubung ke cloud:", err);
+                renderAgendaTable();
             }
         }
 
@@ -254,7 +263,10 @@
         }
 
         async function simpanAgendaKeCloud(dataAgenda) {
-            if (!supabase) return alert("Aplikasi berjalan offline. Gagal terhubung ke cloud.");
+            if (!supabase) {
+                alert("Aplikasi berjalan offline. Gagal tersambung ke database.");
+                return;
+            }
             const { error } = await supabase
                 .from('agenda')
                 .insert([{
@@ -269,7 +281,7 @@
                 }]);
 
             if (error) {
-                alert('Gagal menyimpan: ' + error.message);
+                alert('Gagal menyimpan ke database cloud: ' + error.message);
             } else {
                 muatDataAgendaDariCloud();
             }
@@ -296,7 +308,7 @@
                         <td class="p-2 border-r font-semibold">${agenda.guru}</td>
                         <td class="p-2 border-r text-emerald-800">${agenda.mapel}</td>
                         <td class="p-2 border-r text-slate-600">${agenda.kegiatan}</td>
-                        <td class="p-2 text-center text-emerald-600 font-semibold"><i class="fa-solid fa-cloud"></i> Cloud</td>
+                        <td class="p-2 text-center text-emerald-600 font-semibold"><i class="fa-solid fa-cloud-done"></i> Saved</td>
                     `;
                 } else {
                     tr.innerHTML = `
@@ -309,11 +321,14 @@
             }
         }
 
+        // Jam Jam Real-Time WIB
         setInterval(() => {
             const options = { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-            document.getElementById('current-time-gmt7').textContent = new Intl.DateTimeFormat('id-ID', options).format(new Date()) + " WIB";
+            const clockEl = document.getElementById('current-time-gmt7');
+            if (clockEl) clockEl.textContent = new Intl.DateTimeFormat('id-ID', options).format(new Date()) + " WIB";
         }, 1000);
 
+        // Pengisian Formulir Dasar saat Halaman Siap
         window.addEventListener('DOMContentLoaded', () => {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('input-date').value = today;
@@ -330,6 +345,7 @@
             }
         });
 
+        // Trigger Memasukkan/Mengirim Data Agenda Baru
         document.getElementById('btn-save-agenda').addEventListener('click', () => {
             const kegiatanVal = document.getElementById('agenda-kegiatan').value.trim();
             if (!kegiatanVal) return alert("Uraian kegiatan wajib diisi!");
