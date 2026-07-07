@@ -151,12 +151,12 @@
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans">
 
-
+ 
 
     <!-- ========================================== -->
     <!--               HALAMAN LOGIN                -->
     <!-- ========================================== -->
-    <section id="auth-screen" class="hidden flex-grow flex items-center justify-center p-4 min-h-screen bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-950 no-print">
+    <section id="auth-screen" class="flex-grow flex items-center justify-center p-4 min-h-screen bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-950 no-print">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-emerald-700/20 transform transition-all duration-300">
             <!-- Header Auth -->
             <div class="bg-emerald-800 p-6 text-center text-white relative">
@@ -1032,7 +1032,7 @@
                     .on('postgres_changes', { event: '*', filter: 'table=eq.attendance' }, async () => { await fetchAgendasAndAttendance(); updateView(); })
                     .subscribe();
 
-                document.getElementById('app-loading-overlay').classList.add('hidden');
+                //document.getElementById('app-loading-overlay').classList.add('hidden');
                 checkAuthSession();
             } catch (err) {
                 console.error("Gagal memuat database cloud:", err);
@@ -1128,7 +1128,11 @@
                 alertText.textContent = "Mohon isi username dan password Anda!";
                 return;
             }
-            const foundUser = state.users.find(u => u.username === uInput && u.password === pInput);
+
+            // --- PERBAIKAN: JIKA DATA DI CLOUD KOSONG, GUNAKAN AKUN DEFAULT SEBAGAI CADANGAN ---
+            let daftarUser = (state.users && state.users.length > 0) ? state.users : DEFAULT_USERS;
+            
+            const foundUser = daftarUser.find(u => u.username === uInput && u.password === pInput);
             if (foundUser) {
                 state.currentUser = foundUser;
                 localStorage.setItem('mts_logged_in_user', JSON.stringify(state.currentUser));
