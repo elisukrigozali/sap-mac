@@ -5,28 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Agenda & Absensi MTs Al-Hidayah Cibentang</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Supabase JS CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- SheetJS (XLSX) CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
-    <script>
-        // Konfigurasi Kunci Akses Layanan Cloud Supabase
-        const SUPABASE_URL = 'https://pijtqyrglrnkjfqkehix.supabase.co'; 
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpanRxeXJnbHJua2pmcWtlaGl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MzU0ODYsImV4cCI6MjA5OTAxMTQ4Nn0.C4Z81j7KRc9HyjNzbpjk3vvN57bmI2sbeu3N1HJTxY8';      
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
         }
-        /* Custom Print Styling untuk Kertas Folio (8.5 in x 13 in / 215mm x 330mm) */
         @media print {
             body > *:not(#dynamic-print-area) {
                 display: none !important;
@@ -36,220 +24,79 @@
                 color: black !important;
                 font-size: 10px !important;
                 display: block !important;
-                min-height: auto !important;
-                height: auto !important;
                 margin: 0 !important;
                 padding: 0 !important;
-            }
-            .print-area {
-                display: block !important;
-                width: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                position: relative !important;
-            }
-            @page {
-                size: 8.5in 13in;
-                margin: 0.6cm 1cm 1cm 1.5cm;
-            }
-            @page landscape-folio {
-                size: 13in 8.5in;
-                margin: 0.5cm 0.8cm 0.8cm 1cm;
-            }
-            .print-landscape {
-                page: landscape-folio !important;
-                page-break-after: always !important;
-                page-break-inside: avoid !important;
-                display: block !important;
-                width: 100% !important;
-            }
-            .print-page {
-                page-break-after: always !important;
-                page-break-inside: avoid !important;
-                display: block !important;
-                width: 100% !important;
-            }
-            .print-page:last-child, .print-landscape:last-child {
-                page-break-after: avoid !important;
-            }
-            .print-kop-container {
-                width: 100% !important;
-                margin: 0 0 10px 0 !important;
-                padding: 0 !important;
-                text-align: center !important;
-            }
-            .print-kop-img {
-                width: 100% !important;
-                height: auto !important;
-                max-height: none !important;
-                object-fit: contain !important;
-                display: block !important;
-                margin: 0 !important;
-            }
-            .print-landscape .print-kop-container {
-                width: 100% !important;
-                margin: 0 0 8px 0 !important;
-                padding: 0 !important;
-                display: flex !important;
-                justify-content: center !important;
-                align-items: center !important;
-                text-align: center !important;
-            }
-            .print-landscape .print-kop-img {
-                width: auto !important;
-                max-width: 80% !important;
-                height: auto !important;
-                max-height: 80px !important;
-                object-fit: contain !important;
-                display: block !important;
-                margin: 0 auto !important;
             }
             table {
                 width: 100% !important;
                 border-collapse: collapse !important;
-                margin-top: 5px !important;
-                page-break-inside: auto !important;
-            }
-            tr {
-                page-break-inside: avoid !important;
-                page-break-after: auto !important;
             }
             th, td {
                 border: 1px solid #000 !important;
                 padding: 4px 6px !important;
-                font-size: 9.5px !important;
-                line-height: 1.2 !important;
-                word-wrap: break-word !important;
-            }
-            th {
-                background-color: #f3f4f6 !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            .table-monthly-compact th, .table-monthly-compact td {
-                padding: 2.5px 1px !important;
-                font-size: 8px !important;
-                text-align: center !important;
-            }
-            .table-monthly-compact td.student-name {
-                text-align: left !important;
-                padding-left: 6px !important;
-                font-size: 8.5px !important;
-                white-space: nowrap !important;
-                overflow: hidden !important;
-                text-overflow: ellipsis !important;
             }
         }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans">
 
-    <!-- LAYAR PEMUATAN AWAL KONEKSI AWAN -->
-    <div id="app-loading-overlay" class="fixed inset-0 bg-emerald-900 text-white flex flex-col items-center justify-center z-[200] no-print">
-        <div class="bg-white p-4 rounded-2xl shadow-2xl mb-4 border border-emerald-500/20">
-            <img src="https://lh3.googleusercontent.com/d/1pW84owJKvw9_S0et9saOZ18sJEHhTKuC" alt="Logo" class="w-16 h-14 object-contain animate-bounce">
-        </div>
-        <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-white mb-3"></div>
-        <p class="text-xs font-semibold tracking-wider text-emerald-100">Menghubungkan ke Database Awan Terpusat...</p>
-        <p class="text-[10px] text-emerald-300/80 mt-1">MTs Al-Hidayah Cibentang</p>
-    </div>
-
-    <!-- HALAMAN LOGIN -->
-    <section id="auth-screen" class="hidden flex-grow flex items-center justify-center p-4 min-h-screen bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-950 no-print">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-emerald-700/20 transform transition-all duration-300">
-            <div class="bg-emerald-800 p-6 text-center text-white relative">
-                <div class="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-white p-1.5 rounded-full shadow-lg border border-emerald-100">
-                    <img src="https://lh3.googleusercontent.com/d/1pW84owJKvw9_S0et9saOZ18sJEHhTKuC" alt="Logo" class="w-14 h-14 object-contain">
-                </div>
-                <h2 class="text-xl font-bold tracking-wide mt-2">MTs Al-Hidayah Cibentang</h2>
+    <section id="auth-screen" class="flex flex-grow items-center justify-center p-4 min-h-screen bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-950 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-emerald-700/20">
+            <div class="bg-emerald-800 p-6 text-center text-white">
+                <h2 class="text-xl font-bold tracking-wide">MTs Al-Hidayah Cibentang</h2>
                 <p class="text-xs text-emerald-200 mt-1">Sistem Agenda & Absensi Online</p>
             </div>
-
-            <div id="login-form-container" class="p-8 pt-12 flex flex-col gap-4">
-                <div class="text-center mb-2">
-                    <h3 class="text-lg font-bold text-slate-800">Silakan Masuk</h3>
-                    <p class="text-xs text-slate-400">Gunakan akun Anda untuk mengakses sistem</p>
-                </div>
-
+            <div class="p-8 flex flex-col gap-4">
                 <div id="login-alert-error" class="hidden bg-red-50 border border-red-200 text-red-600 text-xs px-3 py-2.5 rounded-lg flex items-center gap-2">
-                    <i class="fa-solid fa-circle-exclamation text-base"></i>
-                    <span id="login-alert-text">Username atau password salah!</span>
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span>Username atau password salah!</span>
                 </div>
-
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Username</label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                            <i class="fa-solid fa-user text-sm"></i>
-                        </span>
-                        <input type="text" id="login-username" placeholder="Masukkan username..." class="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                    </div>
+                    <input type="text" id="login-username" placeholder="admin" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 </div>
-
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                            <i class="fa-solid fa-lock text-sm"></i>
-                        </span>
-                        <input type="password" id="login-password" placeholder="Masukkan password..." class="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                    </div>
+                    <input type="password" id="login-password" placeholder="••••••••" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 </div>
-
-                <button id="btn-submit-login" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm py-2.5 px-4 rounded-lg transition-all flex items-center justify-center gap-2 mt-2 shadow-md">
-                    <i class="fa-solid fa-sign-in-alt"></i> Masuk Sekarang
+                <button id="btn-submit-login" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm py-2.5 rounded-lg shadow-md transition-all">
+                    Masuk Sekarang
                 </button>
             </div>
         </div>
     </section>
 
-    <!-- DASHBOARD UTAMA SISTEM -->
-    <div id="main-dashboard-app" class="hidden flex-col flex-grow font-sans">
+    <div id="main-dashboard-app" class="hidden flex-col flex-grow">
         <header class="bg-emerald-800 text-white shadow-md no-print">
             <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-                <div class="flex items-center gap-3">
-                    <div class="bg-white p-1 rounded-lg shadow-sm">
-                        <img src="https://lh3.googleusercontent.com/d/1pW84owJKvw9_S0et9saOZ18sJEHhTKuC" alt="Logo" class="w-12 h-12 object-contain">
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-bold tracking-wide">MTs Al-Hidayah Cibentang</h1>
-                        <p class="text-xs text-emerald-200">Sistem Administrasi Agenda & Absensi Online</p>
-                    </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">MTs Al-Hidayah Cibentang</h1>
+                    <p class="text-xs text-emerald-200">Sistem Administrasi Agenda & Absensi Online (Realtime)</p>
                 </div>
-                <div class="flex flex-col items-center md:items-end gap-2 w-full md:w-auto">
-                    <div id="clock-display" class="bg-emerald-950/50 px-4 py-1.5 rounded-lg border border-emerald-700/60 font-mono text-sm font-bold tracking-wider text-emerald-100 flex items-center gap-2 shadow-inner">
-                        <i class="fa-regular fa-clock text-amber-400 animate-pulse"></i>
+                <div class="flex flex-col items-center md:items-end gap-2">
+                    <div id="clock-display" class="bg-emerald-950/50 px-4 py-1.5 rounded-lg font-mono text-sm font-bold text-emerald-100">
                         <span id="current-time-gmt7">00:00:00 WIB</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <div class="text-[10px] bg-emerald-900 border border-emerald-700 px-3 py-1 rounded-full text-emerald-200">
-                            Masuk sebagai: <strong id="current-user-fullname-1" class="text-white font-bold">-</strong>
-                        </div>
-                        <button id="btn-logout" class="bg-red-700 hover:bg-red-800 text-white text-[10px] px-3 py-1 rounded-full font-bold transition-all">
-                            <i class="fa-solid fa-power-off"></i> Keluar
-                        </button>
+                        <span class="text-[10px] bg-emerald-900 px-3 py-1 rounded-full text-white">
+                            Masuk sebagai: <strong id="current-user-fullname">E. Sukri Gozali, S.Pd.</strong>
+                        </span>
+                        <button id="btn-logout" class="bg-red-700 hover:bg-red-800 text-white text-[10px] px-3 py-1 rounded-full font-bold">Keluar</button>
                     </div>
                 </div>
             </div>
         </header>
 
         <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 no-print">
-            <!-- KONTROL INPUT FORM (5 COLS) -->
-            <section class="lg:col-span-5 bg-white rounded-xl shadow-md border border-slate-200 p-5 flex flex-col gap-5">
-                <div class="border-b border-slate-100 pb-3">
-                    <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                        <i class="fa-solid fa-sliders text-emerald-600"></i> Kontrol Administrasi
-                    </h2>
-                </div>
-
+            <section class="lg:col-span-5 bg-white rounded-xl shadow-md p-5 flex flex-col gap-5">
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Tanggal</label>
-                        <input type="date" id="input-date" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500">
+                        <input type="date" id="input-date" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Kelas</label>
-                        <select id="select-class" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500">
+                        <select id="select-class" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm">
                             <option value="7">Kelas 7</option>
                             <option value="8">Kelas 8</option>
                             <option value="9A">Kelas 9A</option>
@@ -260,10 +107,10 @@
                 </div>
 
                 <div class="bg-emerald-50/50 rounded-xl p-4 border border-emerald-100 flex flex-col gap-4">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-800"><i class="fa-solid fa-pen-nib"></i> Input Agenda Pembelajaran</h3>
+                    <h3 class="text-xs font-bold uppercase text-emerald-800"><i class="fa-solid fa-pen-nib"></i> Input Agenda</h3>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Guru</label>
-                        <div id="agenda-guru-input-container"></div>
+                        <input type="text" id="agenda-guru" readonly value="E. Sukri Gozali, S.Pd." class="w-full bg-slate-100 border rounded-lg px-3 py-2 text-sm font-semibold">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Mata Pelajaran</label>
@@ -271,59 +118,42 @@
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Dari Jam Ke-</label>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Dari Jam</label>
                             <select id="agenda-jam-mulai" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm"></select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Sampai Jam Ke-</label>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Sampai Jam</label>
                             <select id="agenda-jam-selesai" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm"></select>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Uraian / Kegiatan Pembelajaran <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Uraian Pembelajaran *</label>
                         <textarea id="agenda-kegiatan" rows="2" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm"></textarea>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan / Keterangan Guru</label>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan</label>
                         <input id="agenda-keterangan" type="text" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm">
                     </div>
-                    <button id="btn-save-agenda" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm py-2 px-4 rounded-lg flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-plus-circle"></i> Masukkan ke Tabel Agenda
+                    <button id="btn-save-agenda" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm py-2 rounded-lg">
+                        Simpan ke Tabel Agenda
                     </button>
                 </div>
 
-                <div class="border-t border-slate-100 pt-4 flex flex-col gap-3">
-                    <div class="grid grid-cols-2 gap-2">
-                        <button id="btn-print-active" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2.5 px-3 rounded-lg flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-print"></i> Cetak Laporan
-                        </button>
-                        <button id="btn-reset-data" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-semibold py-2.5 px-3 rounded-lg flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-trash-can"></i> Kosongkan Hari Ini
-                        </button>
-                    </div>
+                <div class="grid grid-cols-2 gap-2 mt-2">
+                    <button id="btn-print" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2.5 rounded-lg"><i class="fa-solid fa-print"></i> Cetak Laporan</button>
+                    <button id="btn-reset" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-semibold py-2.5 rounded-lg"><i class="fa-solid fa-trash-can"></i> Kosongkan Hari Ini</button>
                 </div>
             </section>
 
-            <!-- PREVIEW WORKSPACE (7 COLS) -->
-            <section class="lg:col-span-7 flex flex-col gap-6 no-print">
-                <div class="bg-white rounded-lg p-1.5 shadow-sm border border-slate-200 flex gap-1">
-                    <button id="tab-agenda-absen" class="flex-1 text-center py-2 px-4 text-xs font-bold rounded-md bg-emerald-600 text-white">
-                        <i class="fa-solid fa-file-invoice mr-1"></i> Agenda & Absensi Kelas
-                    </button>
-                </div>
-
-                <div id="view-agenda-absen" class="bg-white rounded-xl shadow-md border border-slate-200 p-5 flex flex-col gap-6">
-                    <div class="flex flex-col sm:flex-row justify-between border-b pb-3 items-center">
-                        <div>
-                            <h2 class="text-base font-bold text-slate-800">Preview Agenda & Absensi Harian</h2>
-                        </div>
-                        <div class="flex gap-1.5 text-xs">
-                            <span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded font-semibold" id="indicator-kelas">Kelas: 7</span>
-                            <span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded font-semibold" id="indicator-tanggal">-</span>
+            <section class="lg:col-span-7 flex flex-col gap-6">
+                <div class="bg-white rounded-xl shadow-md p-5 flex flex-col gap-4">
+                    <div class="flex justify-between border-b pb-2 items-center">
+                        <h2 class="text-base font-bold text-slate-800">Preview Agenda Hari Ini</h2>
+                        <div class="flex gap-2 text-xs font-bold">
+                            <span class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded" id="ind-kelas">Kelas: 7</span>
+                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded" id="ind-tanggal">-</span>
                         </div>
                     </div>
-
-                    <!-- Tabel Agenda Live -->
                     <div class="overflow-x-auto border rounded-lg">
                         <table class="w-full text-xs">
                             <thead class="bg-slate-50 border-b">
@@ -332,7 +162,7 @@
                                     <th class="p-2 border-r">Guru</th>
                                     <th class="p-2 border-r">Mapel</th>
                                     <th class="p-2 border-r">Kegiatan</th>
-                                    <th class="p-2 text-center w-20">Aksi</th>
+                                    <th class="p-2 text-center w-24">Status</th>
                                 </tr>
                             </thead>
                             <tbody id="table-agenda-rows"></tbody>
@@ -343,37 +173,11 @@
         </main>
     </div>
 
-    <!-- MODAL DIALOG KONFIRMASI -->
-    <div id="modal-confirm-delete" class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 hidden no-print">
-        <div class="bg-white rounded-xl shadow-2xl border max-w-sm w-full p-6 flex flex-col gap-4">
-            <div class="text-center flex flex-col items-center">
-                <h3 class="font-bold text-slate-800 text-base">Konfirmasi Tindakan</h3>
-                <p id="confirm-delete-text" class="text-xs text-slate-500 mt-2 text-center"></p>
-            </div>
-            <div class="flex gap-2 mt-2">
-                <button id="btn-cancel-delete" class="flex-1 py-2 bg-slate-100 text-slate-700 text-xs rounded-lg">Batal</button>
-                <button id="btn-confirm-delete-submit" class="flex-1 py-2 bg-red-600 text-white text-xs rounded-lg">Ya, Hapus</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- SCRIPT LOGIKA UTAMA -->
     <script>
-        // Realtime Supabase Database Listener Integration
-        supabase
-          .channel('schema-db-changes')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'agenda' }, payload => {
-            muatDataAgendaDariCloud();
-          })
-          .subscribe();
-
-        // Data Konfigurasi Master
-        const DEFAULT_GURU = [
-            "E. Sukri Gozali, S.Pd.", "Nurwati, S.Ag.", "Ahmad Fauzi, S.Pd.I.", 
-            "Siti Maryam, S.Pd.", "Drs. H. Maimun", "Rina Herlina, S.Pd.", 
-            "Dadang Solihin, S.Ag.", "Yayan Mulyana, S.Pd.", "Iis Aisyah, S.Pd.", 
-            "Ade Hany Melawati, S.Pd."
-        ];
+        // Inisialisasi Database Supabase Terpusat
+        const SUPABASE_URL = 'https://pijtqyrglrnkjfqkehix.supabase.co'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpanRxeXJnbHJua2pmcWtlaGl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MzU0ODYsImV4cCI6MjA5OTAxMTQ4Nn0.C4Z81j7KRc9HyjNzbpjk3vvN57bmI2sbeu3N1HJTxY8';      
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const DEFAULT_MAPEL = [
             "Al-Qur'an Hadits", "Akidah Akhlak", "Fikih", "Sejarah Kebudayaan Islam (SKI)",
@@ -381,41 +185,45 @@
             "Ilmu Pengetahuan Alam (IPA)", "Ilmu Pengetahuan Sosial (IPS)", "Bahasa Inggris"
         ];
 
-        // Manajemen Keadaan / State Kontrol Lokal
-        let state = {
-            currentUser: { fullname: "E. Sukri Gozali, S.Pd.", username: "admin" },
-            teachers: [...DEFAULT_GURU],
-            subjects: [...DEFAULT_MAPEL],
-            agendas: [],
-            attendance: {},
-            attendanceNotes: {}
-        };
+        let state = { agendas: [] };
 
-        // Sinkronisasi Mengambil Data Cloud Supabase
+        // Realtime Sinkronisasi Tanpa Refresh Halaman
+        supabase
+          .channel('schema-db-changes')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'agenda' }, () => {
+              muatDataAgendaDariCloud();
+          })
+          .subscribe();
+
+        // Mengambil data terpusat dari cloud
         async function muatDataAgendaDariCloud() {
-            const { data: agenda, error } = await supabase
-                .from('agenda')
-                .select('*')
-                .order('tanggal', { ascending: false });
+            try {
+                const { data: agenda, error } = await supabase
+                    .from('agenda')
+                    .select('*')
+                    .order('tanggal', { ascending: false });
 
-            if (agenda) {
-                state.agendas = agenda.map(a => ({
-                    date: a.tanggal,
-                    classId: a.kelas,
-                    jamMulai: a.jam_mulai,
-                    jamSelesai: a.jam_selesai,
-                    guru: a.guru,
-                    mapel: a.mapel,
-                    kegiatan: a.kegiatan,
-                    keterangan: a.keterangan
-                }));
-                renderAgendaTable();
+                if (agenda) {
+                    state.agendas = agenda.map(a => ({
+                        date: a.tanggal,
+                        classId: a.kelas,
+                        jamMulai: a.jam_mulai,
+                        jamSelesai: a.jam_selesai,
+                        guru: a.guru,
+                        mapel: a.mapel,
+                        kegiatan: a.kegiatan,
+                        keterangan: a.keterangan
+                    }));
+                }
+            } catch (err) {
+                console.error(err);
             }
+            renderAgendaTable();
         }
 
-        // Sinkronisasi Mengirim Data ke Cloud Supabase
+        // Menyimpan entri baru ke cloud
         async function simpanAgendaKeCloud(dataAgenda) {
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from('agenda')
                 .insert([{
                     tanggal: dataAgenda.date,
@@ -429,115 +237,99 @@
                 }]);
 
             if (error) {
-                alert('Gagal menyimpan ke cloud: ' + error.message);
+                alert('Gagal menyimpan: ' + error.message);
             } else {
-                showCustomToast('Agenda disinkronkan ke Cloud Database!');
                 muatDataAgendaDariCloud();
             }
         }
 
-        // Fungsi Toast Notification kustom
-        function showCustomToast(message) {
-            const alertSuccess = document.createElement('div');
-            alertSuccess.className = "fixed bottom-5 right-5 bg-emerald-600 text-white text-xs px-4 py-3 rounded-lg shadow-xl z-50 flex items-center gap-2";
-            alertSuccess.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${message}`;
-            document.body.appendChild(alertSuccess);
-            setTimeout(() => alertSuccess.remove(), 3000);
-        }
-
-        // Setup Jam Real-time
-        function updateClock() {
-            const options = { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-            const formatter = new Intl.DateTimeFormat('id-ID', options);
-            document.getElementById('current-time-gmt7').textContent = formatter.format(new Date()) + " WIB";
-        }
-        setInterval(updateClock, 1000);
-
-        // Render input Nama Guru dinamis
-        function renderAgendaGuruInput() {
-            const container = document.getElementById('agenda-guru-input-container');
-            container.innerHTML = `
-                <input type="text" id="agenda-guru-display" readonly value="${state.currentUser.fullname}" class="w-full bg-slate-100 border rounded-lg px-3 py-2 text-sm font-semibold">
-            `;
-        }
-
-        // Render Isi Baris Agenda Tabel Harian
+        // Render data ke dalam tabel preview aplikasi
         function renderAgendaTable() {
             const dateVal = document.getElementById('input-date').value;
             const classVal = document.getElementById('select-class').value;
             const tbodyWeb = document.getElementById('table-agenda-rows');
             
+            if(!tbodyWeb) return;
             tbodyWeb.innerHTML = "";
+            
             const dailyAgendas = state.agendas.filter(a => a.date === dateVal && a.classId === classVal);
 
             for (let jam = 1; jam <= 10; jam++) {
                 const agenda = dailyAgendas.find(a => jam >= parseInt(a.jamMulai) && jam <= parseInt(a.jamSelesai));
-                const trWeb = document.createElement('tr');
-                trWeb.className = "border-b hover:bg-slate-50";
+                const tr = document.createElement('tr');
+                tr.className = "border-b hover:bg-slate-50";
 
                 if (agenda) {
-                    trWeb.innerHTML = `
+                    tr.innerHTML = `
                         <td class="p-2 border-r text-center font-bold bg-slate-50">${jam}</td>
                         <td class="p-2 border-r font-semibold">${agenda.guru}</td>
                         <td class="p-2 border-r text-emerald-800">${agenda.mapel}</td>
                         <td class="p-2 border-r text-slate-600">${agenda.kegiatan}</td>
-                        <td class="p-2 text-center"><span class="text-xs text-slate-400 italic">Saved</span></td>
+                        <td class="p-2 text-center text-emerald-600 font-semibold"><i class="fa-solid fa-cloud"></i> Cloud</td>
                     `;
                 } else {
-                    trWeb.innerHTML = `
+                    tr.innerHTML = `
                         <td class="p-2 border-r text-center font-bold bg-slate-50 text-slate-400">${jam}</td>
                         <td class="p-2 text-center text-slate-400 italic" colspan="3">Belum diisi / Kosong</td>
-                        <td class="p-2 text-center">-</td>
+                        <td class="p-2 text-center text-slate-300">-</td>
                     `;
                 }
-                tbodyWeb.appendChild(trWeb);
+                tbodyWeb.appendChild(tr);
             }
         }
 
-        // Inisialisasi Event Handlers Awal
+        // Jam Sistem Otomatis
+        setInterval(() => {
+            const options = { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            document.getElementById('current-time-gmt7').textContent = new Intl.DateTimeFormat('id-ID', options).format(new Date()) + " WIB";
+        }, 1000);
+
+        // Aksi Login Akun Utama
+        document.getElementById('btn-submit-login').addEventListener('click', () => {
+            const user = document.getElementById('login-username').value.trim();
+            const pass = document.getElementById('login-password').value.trim();
+
+            if (user === 'admin' && pass === 'admin123') {
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('main-dashboard-app').classList.remove('hidden');
+                muatDataAgendaDariCloud();
+            } else {
+                const errBox = document.getElementById('login-alert-error');
+                errBox.classList.remove('hidden');
+                setTimeout(() => errBox.classList.add('hidden'), 3000);
+            }
+        });
+
+        // Pengaturan Input Form saat DOM Siap
         window.addEventListener('DOMContentLoaded', () => {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('input-date').value = today;
-            document.getElementById('indicator-tanggal').textContent = today;
+            document.getElementById('ind-tanggal').textContent = today;
 
-            // Isi Dropdown Pilihan Mapel
             const agendaMapel = document.getElementById('agenda-mapel');
-            state.subjects.forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = opt.textContent = m;
-                agendaMapel.appendChild(opt);
+            DEFAULT_MAPEL.forEach(m => {
+                agendaMapel.add(new Option(m, m));
             });
 
-            // Isi Jam Pelajaran 1-10
             const jamMulai = document.getElementById('agenda-jam-mulai');
             const jamSelesai = document.getElementById('agenda-jam-selesai');
             for(let i=1; i<=10; i++){
-                let opt1 = new Option(i, i);
-                let opt2 = new Option(i, i);
-                jamMulai.add(opt1);
-                jamSelesai.add(opt2);
+                jamMulai.add(new Option(i, i));
+                jamSelesai.add(new Option(i, i));
             }
-
-            document.getElementById('current-user-fullname-1').textContent = state.currentUser.fullname;
-            renderAgendaGuruInput();
-            
-            setTimeout(() => {
-                document.getElementById('app-loading-overlay').classList.add('hidden');
-                muatDataAgendaDariCloud();
-            }, 300);
         });
 
-        // Event listener saat Form disimpan
+        // Klik Tombol Masukkan Agenda
         document.getElementById('btn-save-agenda').addEventListener('click', () => {
             const kegiatanVal = document.getElementById('agenda-kegiatan').value.trim();
-            if (!kegiatanVal) return alert("Uraian kegiatan pembelajaran wajib diisi!");
+            if (!kegiatanVal) return alert("Uraian kegiatan wajib diisi!");
 
             const agendaBaru = {
                 date: document.getElementById('input-date').value,
                 classId: document.getElementById('select-class').value,
                 jamMulai: document.getElementById('agenda-jam-mulai').value,
                 jamSelesai: document.getElementById('agenda-jam-selesai').value,
-                guru: state.currentUser.fullname,
+                guru: document.getElementById('agenda-guru').value,
                 mapel: document.getElementById('agenda-mapel').value,
                 kegiatan: kegiatanVal,
                 keterangan: document.getElementById('agenda-keterangan').value.trim()
@@ -549,10 +341,16 @@
         });
 
         document.getElementById('input-date').addEventListener('change', (e) => {
-            document.getElementById('indicator-tanggal').textContent = e.target.value;
+            document.getElementById('ind-tanggal').textContent = e.target.value;
             renderAgendaTable();
         });
-        document.getElementById('select-class').addEventListener('change', renderAgendaTable);
+        document.getElementById('select-class').addEventListener('change', (e) => {
+            document.getElementById('ind-kelas').textContent = "Kelas: " + e.target.value;
+            renderAgendaTable();
+        });
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            location.reload();
+        });
     </script>
 </body>
 </html>
