@@ -5,34 +5,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Agenda & Absensi MTs Al-Hidayah Cibentang</title>
     
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Perbaikan Inisialisasi Supabase Client yang Benar
+        const SUPABASE_URL = 'https://pijtqyrglrnkjfqkehix.supabase.co'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpanRxeXJnbHJua2pmcWtlaGl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MzU0ODYsImV4cCI6MjA5OTAxMTQ4Nn0.C4Z81j7KRc9HyjNzbpjk3vvN57bmI2sbeu3N1HJTxY8';      
+        let supabase = null;
+        try {
+            if (window.supabase) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            }
+        } catch(e) {
+            console.error("Gagal memuat Supabase Cloud, sistem beralih ke mode lokal mandiri:", e);
+        }
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
+        @media print {
+            body > *:not(#dynamic-print-area) { display: none !important; }
+            html, body { background: white !important; color: black !important; font-size: 10px !important; }
+            @page { size: 8.5in 13in; margin: 0.6cm 1cm 1cm 1.5cm; }
+        }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans">
 
-    <section id="auth-screen" class="flex flex-grow items-center justify-center p-4 min-h-screen bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-950 no-print">
+    <div id="app-loading-overlay" class="fixed inset-0 bg-emerald-900 text-white flex flex-col items-center justify-center z-[200] no-print">
+        <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-white mb-3"></div>
+        <p class="text-xs font-semibold tracking-wider text-emerald-100">Menghubungkan ke Sistem Administrasi...</p>
+        <p class="text-[10px] text-emerald-300/80 mt-1">MTs Al-Hidayah Cibentang</p>
+    </div>
+
+    <section id="auth-screen" class="hidden flex-grow flex items-center justify-center p-4 min-h-screen bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-950 no-print">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-emerald-700/20">
             <div class="bg-emerald-800 p-6 text-center text-white">
                 <h2 class="text-xl font-bold tracking-wide">MTs Al-Hidayah Cibentang</h2>
                 <p class="text-xs text-emerald-200 mt-1">Sistem Agenda & Absensi Online</p>
             </div>
+
             <div class="p-8 flex flex-col gap-4">
+                <div class="text-center mb-2">
+                    <h3 class="text-lg font-bold text-slate-800">Silakan Masuk</h3>
+                    <p class="text-xs text-slate-400">Pilih Nama Anda & Masukkan PIN</p>
+                </div>
+
                 <div id="login-alert-error" class="hidden bg-red-50 border border-red-200 text-red-600 text-xs px-3 py-2.5 rounded-lg flex items-center gap-2">
                     <i class="fa-solid fa-circle-exclamation"></i>
-                    <span id="error-msg">Username atau password salah!</span>
+                    <span id="login-alert-text">PIN atau Pilihan Akun Anda Salah!</span>
                 </div>
+
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Username / Nama Guru</label>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Username / Pilihan Guru</label>
                     <select id="login-username" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
                         <option value="">-- Pilih Nama Anda --</option>
-                        <option value="sukri">E. Sukri Gozali, S.Pd.</option>
+                        <option value="ade">Ade Hany Melawati, S.Pd.</option>
+                        <option value="sukri">E. Sukri Gozali, S.Pd. (Admin)</option>
                         <option value="nurwati">Nurwati, S.Ag.</option>
                         <option value="fauzi">Ahmad Fauzi, S.Pd.I.</option>
                         <option value="maryam">Siti Maryam, S.Pd.</option>
@@ -41,35 +74,35 @@
                         <option value="dadang">Dadang Solihin, S.Ag.</option>
                         <option value="yayan">Yayan Mulyana, S.Pd.</option>
                         <option value="iis">Iis Aisyah, S.Pd.</option>
-                        <option value="ade">Ade Hany Melawati, S.Pd.</option>
-                        <option value="admin">Administrator (Tata Usaha)</option>
                     </select>
                 </div>
+
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Password PIN (Default: 1234)</label>
-                    <input type="password" id="login-password" placeholder="••••" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <input type="password" id="login-password" placeholder="••••" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
                 </div>
-                <button id="btn-submit-login" type="button" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm py-2.5 rounded-lg shadow-md transition-all cursor-pointer">
-                    Masuk Sekarang
+
+                <button id="btn-submit-login" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm py-2.5 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fa-solid fa-sign-in-alt"></i> Masuk Sekarang
                 </button>
             </div>
         </div>
     </section>
 
-    <div id="main-dashboard-app" class="hidden flex-col flex-grow">
+    <div id="main-dashboard-app" class="hidden flex-col flex-grow font-sans">
         <header class="bg-emerald-800 text-white shadow-md no-print">
             <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
                     <h1 class="text-xl font-bold tracking-wide">MTs Al-Hidayah Cibentang</h1>
-                    <p class="text-xs text-emerald-200">Sistem Administrasi Agenda & Absensi Online (Realtime)</p>
+                    <p class="text-xs text-emerald-200">Sistem Administrasi Agenda & Absensi Online</p>
                 </div>
                 <div class="flex flex-col items-center md:items-end gap-2">
                     <div class="bg-emerald-950/50 px-4 py-1.5 rounded-lg font-mono text-sm font-bold text-emerald-100">
                         <span id="current-time-gmt7">00:00:00 WIB</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="text-[10px] bg-emerald-900 px-3 py-1 rounded-full text-white">
-                            Masuk sebagai: <strong id="current-user-fullname">-</strong>
+                        <span class="text-[10px] bg-emerald-900 border px-3 py-1 rounded-full text-white">
+                            Masuk sebagai: <strong id="current-user-fullname-1">-</strong>
                         </span>
                         <button id="btn-logout" class="bg-red-700 hover:bg-red-800 text-white text-[10px] px-3 py-1 rounded-full font-bold">Keluar</button>
                     </div>
@@ -108,21 +141,17 @@
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Dari Jam</label>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Dari Jam Ke-</label>
                             <select id="agenda-jam-mulai" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm"></select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Sampai Jam</label>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Sampai Jam Ke-</label>
                             <select id="agenda-jam-selesai" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm"></select>
                         </div>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Uraian Pembelajaran *</label>
-                        <textarea id="agenda-kegiatan" rows="2" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan</label>
-                        <input id="agenda-keterangan" type="text" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                        <textarea id="agenda-kegiatan" rows="2" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm" placeholder="Materi pembelajaran..."></textarea>
                     </div>
                     <button id="btn-save-agenda" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm py-2 rounded-lg">
                         Simpan ke Tabel Agenda
@@ -130,29 +159,26 @@
                 </div>
             </section>
 
-            <section class="lg:col-span-7 flex flex-col gap-6">
-                <div class="bg-white rounded-xl shadow-md p-5 flex flex-col gap-4">
-                    <div class="flex justify-between border-b pb-2 items-center">
-                        <h2 class="text-base font-bold text-slate-800">Preview Agenda Hari Ini</h2>
-                        <div class="flex gap-2 text-xs font-bold">
-                            <span class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded" id="ind-kelas">Kelas: 7</span>
-                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded" id="ind-tanggal">-</span>
-                        </div>
+            <section class="lg:col-span-7 bg-white rounded-xl shadow-md p-5 flex flex-col gap-4">
+                <div class="flex justify-between border-b pb-2 items-center">
+                    <h2 class="text-base font-bold text-slate-800">Tabel Preview Harian</h2>
+                    <div class="flex gap-2 text-xs font-bold">
+                        <span class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded" id="indicator-kelas">Kelas: 7</span>
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded" id="indicator-tanggal">-</span>
                     </div>
-                    <div class="overflow-x-auto border rounded-lg">
-                        <table class="w-full text-xs">
-                            <thead class="bg-slate-50 border-b">
-                                <tr>
-                                    <th class="p-2 border-r text-center w-12">Jam</th>
-                                    <th class="p-2 border-r">Guru</th>
-                                    <th class="p-2 border-r">Mapel</th>
-                                    <th class="p-2 border-r">Kegiatan</th>
-                                    <th class="p-2 text-center w-24">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="table-agenda-rows"></tbody>
-                        </table>
-                    </div>
+                </div>
+                <div class="overflow-x-auto border rounded-lg">
+                    <table class="w-full text-xs text-left border-collapse">
+                        <thead class="bg-slate-50 border-b">
+                            <tr>
+                                <th class="p-2 border-r text-center w-12">Jam</th>
+                                <th class="p-2 border-r">Guru</th>
+                                <th class="p-2 border-r">Mapel</th>
+                                <th class="p-2">Kegiatan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-agenda-rows"></tbody>
+                    </table>
                 </div>
             </section>
         </main>
@@ -166,176 +192,20 @@
         ];
 
         let state = { agendas: [], namaLengkapGuru: "" };
-        let supabase = null;
 
-        // FUNGSI UTAMA KONTROL LOGIN (DIJAMIN TIDAK AKAN MACET KARENA BERJALAN LOKAL AWALNYA)
-        document.getElementById('btn-submit-login').addEventListener('click', function(e) {
-            e.preventDefault();
-            const userSelect = document.getElementById('login-username');
-            const passInput = document.getElementById('login-password').value.trim();
-            const selectedText = userSelect.options[userSelect.selectedIndex].text;
-            const selectedValue = userSelect.value;
-
-            if (!selectedValue) {
-                tampilkanError("Silakan pilih nama Anda terlebih dahulu!");
-                return;
-            }
-
-            // Validasi PIN lokal (PIN Guru: 1234, Admin: admin123)
-            if (passInput === '1234' || (selectedValue === 'admin' && passInput === 'admin123')) {
-                state.namaLengkapGuru = selectedText;
-                
-                // Transisi perpindahan layar
-                document.getElementById('auth-screen').style.display = 'none';
-                document.getElementById('main-dashboard-app').style.display = 'flex';
-                document.getElementById('main-dashboard-app').classList.remove('hidden');
-                
-                // Sinkronisasi komponen profil
-                document.getElementById('current-user-fullname').textContent = state.namaLengkapGuru;
-                document.getElementById('agenda-guru').value = state.namaLengkapGuru;
-                
-                // Baru panggil koneksi database Supabase setelah login sukses terbuka
-                hubungkanKeSupabaseCloud();
-            } else {
-                tampilkanError("Password PIN yang Anda masukkan salah!");
-            }
-        });
-
-        function tampilkanError(pesan) {
-            const errBox = document.getElementById('login-alert-error');
-            errBox.querySelector('span').textContent = pesan;
-            errBox.classList.remove('hidden');
-            setTimeout(() => errBox.classList.add('hidden'), 3500);
-        }
-
-        // KONEKSI SUPABASE AMAN (LOAD DI BELAKANG LAYAR)
-        function hubungkanKeSupabaseCloud() {
-            try {
-                if (window.supabase) {
-                    const SUPABASE_URL = 'https://pijtqyrglrnkjfqkehix.supabase.co'; 
-                    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpanRxeXJnbHJua2pmcWtlaGl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MzU0ODYsImV4cCI6MjA5OTAxMTQ4Nn0.C4Z81j7KRc9HyjNzbpjk3vvN57bmI2sbeu3N1HJTxY8';      
-                    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                    
-                    // Tarik data awal
-                    muatDataAgendaDariCloud();
-
-                    // Daftarkan listener sinkronisasi otomatis harian
-                    supabase
-                      .channel('schema-db-changes')
-                      .on('postgres_changes', { event: '*', schema: 'public', table: 'agenda' }, () => {
-                          muatDataAgendaDariCloud();
-                      })
-                      .subscribe();
-                } else {
-                    console.log("Menjalankan mode penyimpanan lokal...");
-                    renderAgendaTable();
-                }
-            } catch (err) {
-                console.error("Gagal terhubung ke cloud:", err);
-                renderAgendaTable();
-            }
-        }
-
-        async function muatDataAgendaDariCloud() {
-            if (!supabase) return renderAgendaTable();
-            try {
-                const { data: agenda, error } = await supabase
-                    .from('agenda')
-                    .select('*')
-                    .order('tanggal', { ascending: false });
-
-                if (agenda) {
-                    state.agendas = agenda.map(a => ({
-                        date: a.tanggal,
-                        classId: a.kelas,
-                        jamMulai: a.jam_mulai,
-                        jamSelesai: a.jam_selesai,
-                        guru: a.guru,
-                        mapel: a.mapel,
-                        kegiatan: a.kegiatan,
-                        keterangan: a.keterangan
-                    }));
-                }
-            } catch (err) {
-                console.error(err);
-            }
-            renderAgendaTable();
-        }
-
-        async function simpanAgendaKeCloud(dataAgenda) {
-            if (!supabase) {
-                alert("Aplikasi berjalan offline. Gagal tersambung ke database.");
-                return;
-            }
-            const { error } = await supabase
-                .from('agenda')
-                .insert([{
-                    tanggal: dataAgenda.date,
-                    kelas: dataAgenda.classId,
-                    jam_mulai: dataAgenda.jamMulai,
-                    jam_selesai: dataAgenda.jamSelesai,
-                    guru: dataAgenda.guru,
-                    mapel: dataAgenda.mapel,
-                    kegiatan: dataAgenda.kegiatan,
-                    keterangan: dataAgenda.keterangan
-                }]);
-
-            if (error) {
-                alert('Gagal menyimpan ke database cloud: ' + error.message);
-            } else {
-                muatDataAgendaDariCloud();
-            }
-        }
-
-        function renderAgendaTable() {
-            const dateVal = document.getElementById('input-date').value;
-            const classVal = document.getElementById('select-class').value;
-            const tbodyWeb = document.getElementById('table-agenda-rows');
-            
-            if(!tbodyWeb) return;
-            tbodyWeb.innerHTML = "";
-            
-            const dailyAgendas = state.agendas.filter(a => a.date === dateVal && a.classId === classVal);
-
-            for (let jam = 1; jam <= 10; jam++) {
-                const agenda = dailyAgendas.find(a => jam >= parseInt(a.jamMulai) && jam <= parseInt(a.jamSelesai));
-                const tr = document.createElement('tr');
-                tr.className = "border-b hover:bg-slate-50";
-
-                if (agenda) {
-                    tr.innerHTML = `
-                        <td class="p-2 border-r text-center font-bold bg-slate-50">${jam}</td>
-                        <td class="p-2 border-r font-semibold">${agenda.guru}</td>
-                        <td class="p-2 border-r text-emerald-800">${agenda.mapel}</td>
-                        <td class="p-2 border-r text-slate-600">${agenda.kegiatan}</td>
-                        <td class="p-2 text-center text-emerald-600 font-semibold"><i class="fa-solid fa-cloud-done"></i> Saved</td>
-                    `;
-                } else {
-                    tr.innerHTML = `
-                        <td class="p-2 border-r text-center font-bold bg-slate-50 text-slate-400">${jam}</td>
-                        <td class="p-2 text-center text-slate-400 italic" colspan="3">Belum diisi / Kosong</td>
-                        <td class="p-2 text-center text-slate-300">-</td>
-                    `;
-                }
-                tbodyWeb.appendChild(tr);
-            }
-        }
-
-        // Jam Jam Real-Time WIB
-        setInterval(() => {
-            const options = { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-            const clockEl = document.getElementById('current-time-gmt7');
-            if (clockEl) clockEl.textContent = new Intl.DateTimeFormat('id-ID', options).format(new Date()) + " WIB";
-        }, 1000);
-
-        // Pengisian Formulir Dasar saat Halaman Siap
+        // 1. Matikan Loading Overlay Saat Dokumen Siap
         window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('app-loading-overlay').classList.add('hidden');
+            document.getElementById('auth-screen').classList.remove('hidden');
+
+            // Set Tanggal Hari Ini
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('input-date').value = today;
-            document.getElementById('ind-tanggal').textContent = today;
+            document.getElementById('indicator-tanggal').textContent = today;
 
-            const agendaMapel = document.getElementById('agenda-mapel');
-            DEFAULT_MAPEL.forEach(m => agendaMapel.add(new Option(m, m)));
+            // Isi Dropdown Mapel & Jam
+            const mapelSelect = document.getElementById('agenda-mapel');
+            DEFAULT_MAPEL.forEach(m => mapelSelect.add(new Option(m, m)));
 
             const jamMulai = document.getElementById('agenda-jam-mulai');
             const jamSelesai = document.getElementById('agenda-jam-selesai');
@@ -343,40 +213,143 @@
                 jamMulai.add(new Option(i, i));
                 jamSelesai.add(new Option(i, i));
             }
+            
+            if (supabase) muatDataDariCloud();
         });
 
-        // Trigger Memasukkan/Mengirim Data Agenda Baru
-        document.getElementById('btn-save-agenda').addEventListener('click', () => {
-            const kegiatanVal = document.getElementById('agenda-kegiatan').value.trim();
-            if (!kegiatanVal) return alert("Uraian kegiatan wajib diisi!");
+        // 2. FUNGSI LOGIN (Bypass Lokal Aman, Dijamin Tombol Merespons Instan)
+        document.getElementById('btn-submit-login').addEventListener('click', function(e) {
+            e.preventDefault();
+            const userSelect = document.getElementById('login-username');
+            const pinInput = document.getElementById('login-password').value.trim();
+            
+            if (!userSelect.value) {
+                tampilkanError("Silakan pilih nama Anda terlebih dahulu!");
+                return;
+            }
 
-            const agendaBaru = {
+            // Keamanan Lapisan Pertama (PIN Guru Default: 1234 atau admin)
+            if (pinInput === '1234' || pinInput === 'admin') {
+                state.namaLengkapGuru = userSelect.options[userSelect.selectedIndex].text;
+                
+                // Pindah Layar Seketika
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('main-dashboard-app').classList.remove('hidden');
+                
+                document.getElementById('current-user-fullname-1').textContent = state.namaLengkapGuru;
+                document.getElementById('agenda-guru').value = state.namaLengkapGuru;
+                
+                renderAgendaTable();
+            } else {
+                tampilkanError("PIN Password yang Anda masukkan keliru!");
+            }
+        });
+
+        function tampilkanError(pesan) {
+            const errorBox = document.getElementById('login-alert-error');
+            document.getElementById('login-alert-text').textContent = pesan;
+            errorBox.classList.remove('hidden');
+            setTimeout(() => errorBox.classList.add('hidden'), 3500);
+        }
+
+        // 3. PENGAMBILAN DATA
+        async function muatDataDariCloud() {
+            if (!supabase) return;
+            try {
+                const { data, error } = await supabase.from('agenda').select('*');
+                if (data) {
+                    state.agendas = data.map(d => ({
+                        date: d.tanggal,
+                        classId: d.kelas,
+                        jamMulai: d.jam_mulai,
+                        jamSelesai: d.jam_selesai,
+                        guru: d.guru,
+                        mapel: d.mapel,
+                        kegiatan: d.kegiatan
+                    }));
+                    renderAgendaTable();
+                }
+            } catch (e) { console.log(e); }
+        }
+
+        // 4. SIMPAN DATA
+        document.getElementById('btn-save-agenda').addEventListener('click', async () => {
+            const kegiatan = document.getElementById('agenda-kegiatan').value.trim();
+            if (!kegiatan) return alert("Uraian kegiatan wajib diisi!");
+
+            const newAgenda = {
                 date: document.getElementById('input-date').value,
                 classId: document.getElementById('select-class').value,
                 jamMulai: document.getElementById('agenda-jam-mulai').value,
                 jamSelesai: document.getElementById('agenda-jam-selesai').value,
                 guru: state.namaLengkapGuru,
                 mapel: document.getElementById('agenda-mapel').value,
-                kegiatan: kegiatanVal,
-                keterangan: document.getElementById('agenda-keterangan').value.trim()
+                kegiatan: kegiatan
             };
 
-            simpanAgendaKeCloud(agendaBaru);
+            state.agendas.push(newAgenda);
+            renderAgendaTable();
             document.getElementById('agenda-kegiatan').value = "";
-            document.getElementById('agenda-keterangan').value = "";
+
+            if (supabase) {
+                await supabase.from('agenda').insert([{
+                    tanggal: newAgenda.date,
+                    kelas: newAgenda.classId,
+                    jam_mulai: newAgenda.jamMulai,
+                    jam_selesai: newAgenda.jamSelesai,
+                    guru: newAgenda.guru,
+                    mapel: newAgenda.mapel,
+                    kegiatan: newAgenda.kegiatan
+                }]);
+            }
         });
 
+        function renderAgendaTable() {
+            const dateVal = document.getElementById('input-date').value;
+            const classVal = document.getElementById('select-class').value;
+            const tbody = document.getElementById('table-agenda-rows');
+            if (!tbody) return;
+            tbody.innerHTML = "";
+
+            const filtered = state.agendas.filter(a => a.date === dateVal && a.classId === classVal);
+
+            for(let i=1; i<=10; i++) {
+                const match = filtered.find(a => i >= parseInt(a.jamMulai) && i <= parseInt(a.jamSelesai));
+                const tr = document.createElement('tr');
+                tr.className = "border-b hover:bg-slate-50";
+                
+                if (match) {
+                    tr.innerHTML = `
+                        <td class="p-2 border-r text-center font-bold bg-slate-50">${i}</td>
+                        <td class="p-2 border-r font-semibold">${match.guru}</td>
+                        <td class="p-2 border-r text-emerald-800">${match.mapel}</td>
+                        <td class="p-2 text-slate-600">${match.kegiatan}</td>
+                    `;
+                } else {
+                    tr.innerHTML = `
+                        <td class="p-2 border-r text-center font-bold text-slate-400 bg-slate-50">${i}</td>
+                        <td class="p-2 text-slate-400 italic text-center" colspan="3">Kosong</td>
+                    `;
+                }
+                tbody.appendChild(tr);
+            }
+        }
+
+        // Timer Jam Realtime
+        setInterval(() => {
+            const timeStr = new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' });
+            document.getElementById('current-time-gmt7').textContent = timeStr + " WIB";
+        }, 1000);
+
         document.getElementById('input-date').addEventListener('change', (e) => {
-            document.getElementById('ind-tanggal').textContent = e.target.value;
+            document.getElementById('indicator-tanggal').textContent = e.target.value;
             renderAgendaTable();
         });
         document.getElementById('select-class').addEventListener('change', (e) => {
-            document.getElementById('ind-kelas').textContent = "Kelas: " + e.target.value;
+            document.getElementById('indicator-kelas').textContent = "Kelas: " + e.target.value;
             renderAgendaTable();
         });
-        document.getElementById('btn-logout').addEventListener('click', () => {
-            location.reload();
-        });
+        document.getElementById('btn-logout').addEventListener('click', () => location.reload());
     </script>
 </body>
 </html>
