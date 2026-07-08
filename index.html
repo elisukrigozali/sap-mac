@@ -826,22 +826,26 @@
 
         // ==================== SISTEM LOGIN & LOGOUT ====================
         async function handleLogin(e) {
-            e.preventDefault();
-            const userVal = document.getElementById('login-username').value.trim();
-            const passVal = document.getElementById('login-password').value;
+    e.preventDefault();
+    const userVal = document.getElementById('login-username').value.trim();
+    const passVal = document.getElementById('login-password').value;
 
-            try {
-                const { data, error } = await supabaseClient
-                    .from('guru_users')
-                    .select('*')
-                    .eq('username', userVal)
-                    .eq('password', passVal)
-                    .single();
+    // BYPASS TOTAL: Langsung lolos tanpa peduli database Supabase
+    if (userVal === 'admin' && passVal === 'admin123') {
+        currentUser = {
+            id: 999,
+            nama: "Administrator Utama",
+            username: "admin",
+            role: "Admin"
+        };
+        localStorage.setItem('mts_al_hidayah_session', JSON.stringify(currentUser));
+        showToast(`Selamat datang, Admin! (Mode Darurat)`);
+        applyUserSession();
+    } else {
+        showToast('Username atau Password salah!', 'error');
+    }
+}
 
-                if (error || !data) {
-                    showToast('Username atau Password salah!', 'error');
-                    return;
-                }
 
                 currentUser = data;
                 localStorage.setItem('mts_al_hidayah_session', JSON.stringify(currentUser));
